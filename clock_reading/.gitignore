@@ -1,0 +1,7 @@
+/clocks
+/tra
+/val
+
+__pycache__
+
+trained_model.keras
