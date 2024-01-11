@@ -4,7 +4,7 @@ from keras.models import load_model
 from keras.preprocessing import image
 import numpy as np
 
-IMAGE_SIZE = 112
+IMAGE_SIZE = 116
 
 # モデルのロード
 model = load_model("trained_model.keras")

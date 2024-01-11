@@ -2,30 +2,52 @@ import os
 import random
 import shutil
 import matplotlib.pyplot as plt
+import matplotlib.font_manager
 import numpy as np
-from torch import rand
 from tqdm import tqdm
 from itertools import product
 
 fig_size = 4
-radius = 1
 
 
-def _draw_clock_face(hour, minute, second):
+def _font_installed(font_name):
+    return font_name in [f.name for f in matplotlib.font_manager.fontManager.ttflist]
+
+
+def _draw_clock_face(hour, minute, second, radius):
     plt.figure(figsize=(fig_size, fig_size))
     plot = plt.subplot()
-    plot.set_xlim([-1.1, 1.1])
-    plot.set_ylim([-1.1, 1.1])
+    plot.set_xlim([-1.8, 1.8])
+    plot.set_ylim([-1.8, 1.8])
     plot.set_xlabel("x", size=14)
     plot.set_ylabel("y", size=14)
     plot.set_aspect("equal")
     plt.axis("off")
 
+    # Make the clock frame
     if random.random() < 0.5:
         x = radius * np.cos(np.linspace(0, 2 * np.pi, 1000))
         y = radius * np.sin(np.linspace(0, 2 * np.pi, 1000))
-        plt.plot(x, y, linewidth=4, c="black")
+        plt.plot(x, y, linewidth=4 * random.random(), c="black")
+    else:
+        line_width = random.randint(1, 4)
+        rand_radius = random.uniform(1, 1.4)
+        x = np.linspace(-radius * rand_radius, radius * rand_radius, 1000)
+        y = np.linspace(-radius * rand_radius, radius * rand_radius, 1000)
+        plt.plot(
+            x, np.ones(1000) * radius * rand_radius, linewidth=line_width, c="black"
+        )
+        plt.plot(
+            x, np.ones(1000) * -radius * rand_radius, linewidth=line_width, c="black"
+        )
+        plt.plot(
+            np.ones(1000) * radius * rand_radius, y, linewidth=line_width, c="black"
+        )
+        plt.plot(
+            np.ones(1000) * -radius * rand_radius, y, linewidth=line_width, c="black"
+        )
 
+    # Make the clock face
     if random.random() < 0.5:
         rand_length = random.random()
         rand_width = random.random()
@@ -39,6 +61,7 @@ def _draw_clock_face(hour, minute, second):
 
             plt.plot([x1, x2], [y1, y2], linewidth=line_width, c="black")
 
+    # Make the clock numbers
     if random.random() < 0.5:
         rand_font_size = random.randint(10, 20)
         for h_ in range(1, 13, 1):
@@ -53,6 +76,7 @@ def _draw_clock_face(hour, minute, second):
                 fontsize=rand_font_size,
             )
 
+    # Make the clock date info
     if random.random() < 0.5:
         x = 0
         y = -radius * random.uniform(0.3, 0.6)
@@ -78,7 +102,8 @@ def _calculate_clock_hands(hour, minute, second):
 
 
 def create_clock(hour, minute, second, directory):
-    _draw_clock_face(hour, minute, second)
+    radius = random.uniform(0.5, 1.5)
+    _draw_clock_face(hour, minute, second, radius)
 
     deg_second, deg_minute, deg_hour = _calculate_clock_hands(hour, minute, second)
 
@@ -109,7 +134,7 @@ def create_clock(hour, minute, second, directory):
     return clock_fname
 
 
-def main(dir_name, index_fname):
+def main(dir_name, index_fname, generate_num):
     if os.path.isdir(dir_name):
         print(f"Directory {dir_name} already exists. Removing...")
         shutil.rmtree(dir_name)
@@ -122,13 +147,15 @@ def main(dir_name, index_fname):
     seconds = range(0, 60)
     times = [x for x in product(hours, minutes, seconds)]
 
+    # Pick a random subset of the times
+    random.shuffle(times)
+    times = times[:generate_num]
+
     with open(index_fname, "w") as index_file:
         TOTAL_IMAGES = len(times)
         with tqdm(total=TOTAL_IMAGES, desc="Generating images", unit="image") as pbar:
             for t in times:
                 pbar.update(1)
-                if random.random() < 0.95:
-                    continue
                 clock_fname = create_clock(t[0], t[1], t[2], dir_name)
                 index_str = f"{clock_fname}\t{t[0]}\t{t[1]}\t{t[2]}\n"
                 index_file.write(index_str)
@@ -139,4 +166,5 @@ def main(dir_name, index_fname):
 if __name__ == "__main__":
     dir_name = "clocks"
     index_fname = "clocks_all.txt"
-    main(dir_name, index_fname)
+    generate_num = 2000
+    main(dir_name, index_fname, generate_num)

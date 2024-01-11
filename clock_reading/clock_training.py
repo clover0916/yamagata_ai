@@ -17,15 +17,18 @@ The output of the CNN represents the predicted hour, minute, and second values.
 The difference between the predicted hour, minute, and second values from the CNN and the actual hour, minute, and second values is used as the loss function.
 """
 
+from cProfile import label
 import cv2
+from cycler import V
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras import regularizers
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
 import matplotlib.pyplot as plt
 
-IMAGE_SIZE = 112
+IMAGE_SIZE = 116
 
 # Load the data from clocks_all.txt
 data_file = "./clocks_all.txt"
@@ -47,6 +50,7 @@ for line in data:
     image = cv2.resize(image, (IMAGE_SIZE, IMAGE_SIZE))
     image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     image = image / 255.0
+    image = np.expand_dims(image, axis=-1)
 
     images.append(image)
     labels.append((hour, minute, second))
@@ -54,6 +58,25 @@ for line in data:
 # Convert the data to numpy arrays
 images = np.array(images)
 labels = np.array(labels)
+
+datagen = ImageDataGenerator(
+    rotation_range=10,
+    width_shift_range=0.1,
+    height_shift_range=0.1,
+    zoom_range=0.1,
+    validation_split=0.2,
+)
+
+# Generate the training data
+train_generator = datagen.flow(
+    images, labels, batch_size=32, subset="training", shuffle=True
+)
+
+# Generate the validation data
+validation_generator = datagen.flow(
+    images, labels, batch_size=32, subset="validation", shuffle=True
+)
+
 
 # Define the CNN model
 model = Sequential()
@@ -73,17 +96,34 @@ model.add(Dense(3, activation="linear"))
 model.summary()
 
 # Compile the model
-model.compile(optimizer="adam", loss="mean_squared_error", metrics=["accuracy"])
+model.compile(
+    optimizer="adam", loss=tf.keras.losses.MeanSquaredError(), metrics=["accuracy"]
+)
 
 # Train the model
-history = model.fit(images, labels, epochs=120, batch_size=32)
-
-# Plot the loss curve
-plt.plot(history.history["loss"])
-plt.title("Model Loss")
-plt.xlabel("Epoch")
-plt.ylabel("Loss")
-plt.savefig("loss_curve.png")
-plt.show()
+history = model.fit(train_generator, epochs=100, validation_data=validation_generator)
 
 model.save("trained_model.keras")
+
+# Plot the metrics
+fig, ax1 = plt.subplots()
+ax2 = ax1.twinx()
+
+ax1.plot(history.history["loss"], label="loss", color="blue")
+ax1.plot(history.history["val_loss"], label="val_loss", color="orange")
+ax2.plot(history.history["accuracy"], label="accuracy", color="green")
+ax2.plot(
+    history.history["val_accuracy"],
+    label="val_accuracy",
+    color="red",
+)
+ax2.set_ylim([0, 1])
+
+handler1, label1 = ax1.get_legend_handles_labels()
+handler2, label2 = ax2.get_legend_handles_labels()
+ax1.legend(handler1 + handler2, label1 + label2, loc=2, borderaxespad=0.0)
+
+plt.title("Model Metrics")
+plt.xlabel("Epoch")
+plt.savefig("metrics_curve.png")
+plt.show()
