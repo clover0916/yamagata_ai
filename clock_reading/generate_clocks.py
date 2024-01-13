@@ -2,7 +2,7 @@ import os
 import random
 import shutil
 import matplotlib.pyplot as plt
-import matplotlib.font_manager
+import matplotlib.patches as patches
 import numpy as np
 from tqdm import tqdm
 from itertools import product
@@ -10,11 +10,7 @@ from itertools import product
 fig_size = 4
 
 
-def _font_installed(font_name):
-    return font_name in [f.name for f in matplotlib.font_manager.fontManager.ttflist]
-
-
-def _draw_clock_face(hour, minute, second, radius):
+def _draw_clock_face(radius):
     plt.figure(figsize=(fig_size, fig_size))
     plot = plt.subplot()
     plot.set_xlim([-1.8, 1.8])
@@ -32,20 +28,26 @@ def _draw_clock_face(hour, minute, second, radius):
     else:
         line_width = random.randint(1, 4)
         rand_radius = random.uniform(1, 1.4)
-        x = np.linspace(-radius * rand_radius, radius * rand_radius, 1000)
-        y = np.linspace(-radius * rand_radius, radius * rand_radius, 1000)
-        plt.plot(
-            x, np.ones(1000) * radius * rand_radius, linewidth=line_width, c="black"
+        corner_radius = random.uniform(0, 0.3)
+
+        if random.random() < 0.5:
+            corner_radius = 0
+
+        fig, ax = plt.subplots(figsize=(fig_size, fig_size))
+        ax.set_xlim([-1.8, 1.8])
+        ax.set_ylim([-1.8, 1.8])
+        ax.set_aspect("equal")
+
+        rect = patches.FancyBboxPatch(
+            (-radius * rand_radius, -radius * rand_radius),
+            2 * radius * rand_radius,
+            2 * radius * rand_radius,
+            linewidth=line_width,
+            edgecolor="black",
+            facecolor="none",
+            boxstyle=patches.BoxStyle.Round(pad=corner_radius),
         )
-        plt.plot(
-            x, np.ones(1000) * -radius * rand_radius, linewidth=line_width, c="black"
-        )
-        plt.plot(
-            np.ones(1000) * radius * rand_radius, y, linewidth=line_width, c="black"
-        )
-        plt.plot(
-            np.ones(1000) * -radius * rand_radius, y, linewidth=line_width, c="black"
-        )
+        ax.add_patch(rect)
 
     # Make the clock face
     if random.random() < 0.5:
@@ -76,23 +78,6 @@ def _draw_clock_face(hour, minute, second, radius):
                 fontsize=rand_font_size,
             )
 
-    # Make the clock date info
-    if random.random() < 0.5:
-        x = 0
-        y = -radius * random.uniform(0.3, 0.6)
-        if random.random() < 0.5:
-            text = f"{random.randint(1, 12)}/{random.randint(1, 31)}/{random.randint(0, 9999)}"
-        else:
-            text = f"{random.randint(0, 9999)}/{random.randint(1, 12)}/{random.randint(1, 31)} {hour:02d}:{minute:02d}:{second:02d}"
-        plt.text(
-            x,
-            y,
-            text,
-            horizontalalignment="center",
-            verticalalignment="center",
-            fontsize=random.randint(4, 14),
-        )
-
 
 def _calculate_clock_hands(hour, minute, second):
     deg_second = (second / 60) * 360
@@ -103,7 +88,7 @@ def _calculate_clock_hands(hour, minute, second):
 
 def create_clock(hour, minute, second, directory):
     radius = random.uniform(0.5, 1.5)
-    _draw_clock_face(hour, minute, second, radius)
+    _draw_clock_face(radius)
 
     deg_second, deg_minute, deg_hour = _calculate_clock_hands(hour, minute, second)
 
@@ -112,9 +97,10 @@ def create_clock(hour, minute, second, directory):
     hour_hand_length = random.uniform(0.4, 0.6)
 
     if random.random() < 0.5:
+        color = random.choice(["red", "black"])
         x_second = np.sin(np.radians(deg_second)) * radius * second_hand_length
         y_second = np.cos(np.radians(deg_second)) * radius * second_hand_length
-        plt.plot([0, x_second], [0, y_second], linewidth=2 * random.random(), c="black")
+        plt.plot([0, x_second], [0, y_second], linewidth=2 * random.random(), c=color)
 
     x_minute = np.sin(np.radians(deg_minute)) * radius * minute_hand_length
     y_minute = np.cos(np.radians(deg_minute)) * radius * minute_hand_length
@@ -130,7 +116,7 @@ def create_clock(hour, minute, second, directory):
         directory, f"clock-{hour:02d}.{minute:02d}.{second:02d}.png"
     )
     plt.savefig(clock_fname)
-    plt.close()
+    plt.close("all")
     return clock_fname
 
 
@@ -166,5 +152,5 @@ def main(dir_name, index_fname, generate_num):
 if __name__ == "__main__":
     dir_name = "clocks"
     index_fname = "clocks_all.txt"
-    generate_num = 2000
+    generate_num = 1000
     main(dir_name, index_fname, generate_num)

@@ -1,6 +1,5 @@
 /clocks
-/tra
-/val
+/keras_tuner
 
 clocks_all.txt
 
