@@ -5,7 +5,7 @@ from keras.preprocessing import image
 import numpy as np
 import matplotlib.pyplot as plt
 
-IMAGE_SIZE = 116
+IMAGE_SIZE = 112
 
 # Load the model
 model = load_model("trained_model.keras")

@@ -6,3 +6,9 @@ clocks_all.txt
 __pycache__
 
 trained_model.keras
+
+.gitignore
+
+.mypy_cache
+
+clocks_all.txt
